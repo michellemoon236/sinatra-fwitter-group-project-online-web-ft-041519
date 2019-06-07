@@ -2,7 +2,7 @@ class TweetsController < ApplicationController
 
   get '/tweets' do
     if logged_in?
-      @tweets = current_user.tweets
+      @tweets = Tweet.all
       erb :'tweets/index'
     else
       redirect '/login'
@@ -19,32 +19,67 @@ class TweetsController < ApplicationController
   end
   
   post '/tweets' do
-    @tweet = Tweet.create(:content => params[:content])
-    redirect to "/tweets/#{@tweet.id}"
+    #binding.pry
+    if params[:content] == ""
+      redirect '/tweets/new'
+    else
+      tweet = Tweet.create(:content => params[:content])
+      tweet.user_id = session[:user_id]
+      tweet.save
+      redirect to "/tweets/#{@tweet.id}"
+    end
   end
 
   get '/tweets/:id' do
-    @tweet = Tweet.find_by_id(params[:id])
-    erb :'tweets/show'
+    # @tweet = Tweet.find_by_id(params[:id])
+    # erb :'tweets/show'
+    if logged_in?
+      @tweet = Tweet.find_by_id(params[:id])
+      erb :'tweets/show'
+    else
+      redirect '/login'
+    end
   end
 
   get '/tweets/:id/edit' do  #load edit form
-    @tweet = Tweet.find_by_id(params[:id])
-      erb :'tweets/edit'
+    if logged_in?
+      @tweet = Tweet.find_by_id(params[:id])
+        if @tweet.user_id == session[:user_id]
+          erb :'tweets/edit'
+        else
+          redirect '/tweets'
+        end
+    else 
+      redirect '/login'
     end
+  end
+    # @tweet = Tweet.find_by_id(params[:id])
+    #   erb :'tweets/edit'
+
  
   patch '/tweets/:id' do #edit action
-    @tweet = Tweet.find_by_id(params[:id])
-    @tweet.content = params[:content]
-    @tweet.save
-    redirect "/tweets/#{@tweet.id}"
+    if params[:content] == ""
+      redirect "/tweets/#{@tweet.id}/edit"
+    else    
+      @tweet = Tweet.find_by_id(params[:id])
+      @tweet.content = params[:content]
+      @tweet.save
+      redirect "/tweets/#{@tweet.id}"
+    end
   end
 
 
   delete '/tweets/:id' do #delete action
     @tweet = Tweet.find_by_id(params[:id])
-    @tweet.delete
-    redirect '/tweets'
+    if @tweet.user_id == session[:user_id]
+      @tweet.delete
+      redirect '/tweets'
+    else
+      redirect "/tweets/#{@tweet.id}"
+    end
   end
 
 end
+
+
+
